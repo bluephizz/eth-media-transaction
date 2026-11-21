@@ -1,0 +1,512 @@
+{
+  "rpcUrl": "http://127.0.0.1:8545",
+  "assetPoolUrl": "http://127.0.0.1:8545/asset",
+  "chainId": 1337,
+  "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "contractAbi": [
+    {
+      "type": "function",
+      "name": "allAssetIds",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "canPurchase",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "cancelSale",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "confirmReceipt",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getAllAssetIds",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32[]",
+          "internalType": "bytes32[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getSale",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct ArtworkMarketplace.Sale",
+          "components": [
+            {
+              "name": "assetId",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            },
+            {
+              "name": "creator",
+              "type": "address",
+              "internalType": "address payable"
+            },
+            {
+              "name": "price",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "designatedPurchaser",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "purchaser",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "status",
+              "type": "uint8",
+              "internalType": "enum ArtworkMarketplace.SaleStatus"
+            },
+            {
+              "name": "postedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "purchasedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "receivedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "creatorSignature",
+              "type": "bytes",
+              "internalType": "bytes"
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "internalType": "string"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "postSale",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "price",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "designatedPurchaser",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "creatorSignature",
+          "type": "bytes",
+          "internalType": "bytes"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "purchaseArtwork",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "recoverSigner",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "signature",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "sales",
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "creator",
+          "type": "address",
+          "internalType": "address payable"
+        },
+        {
+          "name": "price",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "designatedPurchaser",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "purchaser",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "status",
+          "type": "uint8",
+          "internalType": "enum ArtworkMarketplace.SaleStatus"
+        },
+        {
+          "name": "postedAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "purchasedAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "receivedAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "creatorSignature",
+          "type": "bytes",
+          "internalType": "bytes"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalSales",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "ArtworkPosted",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "creator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "price",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "designatedPurchaser",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "postedAt",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ArtworkPurchased",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "creator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "purchaser",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "price",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "purchasedAt",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ArtworkReceived",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "purchaser",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "receivedAt",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "SaleCancelled",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "creator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "IncorrectPaymentAmount",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidAssetId",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidSignature",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "NotCreator",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "NotPurchaser",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "PaymentTransferFailed",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SaleAlreadyExists",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SaleNotActive",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SaleNotFound",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "UnauthorizedPurchaser",
+      "inputs": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Alice (Creator)",
+      "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "privateKey": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+      "role": "creator"
+    },
+    {
+      "name": "Bob (Purchaser)",
+      "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "privateKey": "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+      "role": "purchaser"
+    },
+    {
+      "name": "Charlie (Purchaser 2)",
+      "address": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "privateKey": "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+      "role": "purchaser"
+    }
+  ]
+}

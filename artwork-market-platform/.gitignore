@@ -1,0 +1,21 @@
+# Testnet runtime data (Geth chaindata, Pebble DB, ephemeral asset pool storage)
+data/
+datadir/
+
+# Process and execution logs
+logs/
+*.log
+
+# Smart contract compilation artifacts and broadcast caches
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# Node & Python caches
+node_modules/
+__pycache__/
+*.pyc
+
+# Local environments
+.env
+.env.local

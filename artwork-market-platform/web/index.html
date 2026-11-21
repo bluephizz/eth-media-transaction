@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethereum Artwork Marketplace — Native Geth Asset Pool</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="lib/ethers.umd.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <div class="logo-area">
+        <div class="logo-icon">🎨</div>
+        <div class="logo-text">
+          <h1>Ethereum Artwork Exchange</h1>
+          <p>Native Geth Asset Pool Architecture</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div id="node-status" class="node-status-pill">
+          <span class="status-indicator"></span>
+          <span id="node-text">Connecting to Geth...</span>
+        </div>
+
+        <div class="account-selector-box">
+          <label for="account-select" style="font-size:0.75rem; color:var(--text-secondary)">Actor:</label>
+          <select id="account-select" class="account-select">
+            <!-- Populated from config.json -->
+          </select>
+          <div id="account-balance" class="account-balance">0.00 ETH</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Overview Banner with Real-time Geth & Pool Metrics -->
+    <div class="overview-banner">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Block Number</div>
+          <div id="stat-block" class="stat-value">#0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Contract Address</div>
+          <div id="stat-contract" class="stat-value" style="font-size:0.85rem; font-family:monospace; word-break:break-all;">Loading...</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Pool Active Media</div>
+          <div id="stat-pool-active" class="stat-value">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Purchaser Window</div>
+          <div class="stat-value" style="color:var(--accent-amber)">48 Hours</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Storage Used</div>
+          <div id="stat-pool-bytes" class="stat-value">0 KB</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="marketplace">🖼️ Marketplace Gallery</button>
+      <button class="tab-btn" data-tab="creator">🎨 Creator Studio (Post Artwork)</button>
+      <button class="tab-btn" data-tab="vault">📦 Purchaser Vault (My Media)</button>
+      <button class="tab-btn" data-tab="pool-inspector">⚙️ Geth Asset Pool Diagnostics</button>
+    </div>
+
+    <!-- TAB 1: Marketplace Gallery -->
+    <div id="marketplace-tab" class="tab-content active">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2>Active Artwork Postings</h2>
+        <button id="refresh-marketplace-btn" class="btn btn-outline">🔄 Refresh Listings</button>
+      </div>
+
+      <div id="artwork-grid" class="artwork-grid">
+        <div style="grid-column: 1/-1; text-align:center; padding:3rem; color:var(--text-secondary)">
+          Loading artworks from Ethereum blockchain and Geth Asset Pool...
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Creator Studio -->
+    <div id="creator-tab" class="tab-content">
+      <div class="form-card">
+        <h2 style="margin-bottom:0.5rem">Post Artwork for Sale</h2>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.5rem">
+          Post an artwork sale transaction to the blockchain. The file payload is persisted in Geth's Asset Pool with your cryptographic secp256k1 signature for the 48-hour purchaser time window.
+        </p>
+
+        <form id="create-artwork-form">
+          <div class="form-group">
+            <label for="artwork-file">Select Artwork Media (PNG, JPG, SVG, GIF, etc.)</label>
+            <div id="drop-zone" class="drop-zone">
+              <div class="drop-zone-icon">📁</div>
+              <p>Drag and drop image here or <strong>browse file</strong></p>
+              <input type="file" id="artwork-file" accept="image/*" style="display:none">
+            </div>
+            <div id="image-preview" class="image-preview-box" style="display:none;">
+              <img id="preview-img" src="" alt="Artwork Preview">
+            </div>
+            <div id="file-info" style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="artwork-title">Artwork Title</label>
+            <input type="text" id="artwork-title" class="form-control" placeholder="e.g. Celestial Mirage #01" required>
+          </div>
+
+          <div class="form-group">
+            <label for="artwork-desc">Description</label>
+            <textarea id="artwork-desc" class="form-control" rows="2" placeholder="Artwork story, medium, and details..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="artwork-price">Price (in ETH)</label>
+            <input type="number" id="artwork-price" class="form-control" step="0.001" min="0" placeholder="e.g. 0.05" required>
+          </div>
+
+          <div class="form-group">
+            <label for="artwork-designated">Designated Purchaser (Optional)</label>
+            <input type="text" id="artwork-designated" class="form-control" placeholder="0x... (Leave empty for public sale to anyone)">
+            <small style="color:var(--text-muted); font-size:0.75rem">If specified, only this address will be allowed to purchase the artwork on-chain.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Calculated Keccak-256 Media Hash</label>
+            <input type="text" id="artwork-hash" class="form-control" readonly placeholder="Select a file to compute hash..." style="font-family:monospace; font-size:0.85rem">
+          </div>
+
+          <button type="submit" id="submit-post-btn" class="btn btn-primary btn-full">
+            ✍️ Sign & Post Artwork to Blockchain
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 3: Purchaser Vault -->
+    <div id="vault-tab" class="tab-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <div>
+          <h2>My Purchased Artworks</h2>
+          <p style="font-size:0.85rem; color:var(--text-secondary)">Artworks purchased by active account. Retrieve full resolution media directly from Geth Asset Pool and confirm receipt.</p>
+        </div>
+        <button id="refresh-vault-btn" class="btn btn-outline">🔄 Refresh Vault</button>
+      </div>
+
+      <div id="vault-grid" class="artwork-grid">
+        <div style="grid-column: 1/-1; text-align:center; padding:3rem; color:var(--text-secondary)">
+          No artworks purchased yet. Select a purchaser account and buy an artwork from the Marketplace!
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Geth Asset Pool Diagnostics -->
+    <div id="pool-inspector-tab" class="tab-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <div>
+          <h2>Node Asset Pool Diagnostics</h2>
+          <p style="font-size:0.85rem; color:var(--text-secondary)">Real-time status of Geth's built-in ephemeral media pool, retention countdowns, and eviction engine.</p>
+        </div>
+        <div style="display:flex; gap:0.5rem">
+          <button id="prune-pool-btn" class="btn btn-primary" style="background:linear-gradient(135deg, #d97706, #b45309)">
+            🧹 Trigger Asset Pool Prune
+          </button>
+          <button id="refresh-pool-btn" class="btn btn-outline">🔄 Refresh Pool</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Asset ID (Hash)</th>
+              <th>Title</th>
+              <th>MIME Type</th>
+              <th>Size</th>
+              <th>Creator</th>
+              <th>Status</th>
+              <th>Purchaser Window Remaining</th>
+              <th>Cryptographic Verification</th>
+              <th>Direct Node URL</th>
+            </tr>
+          </thead>
+          <tbody id="pool-assets-table-body">
+            <tr>
+              <td colspan="9" style="text-align:center; color:var(--text-secondary)">No assets in pool</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

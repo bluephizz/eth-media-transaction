@@ -1,0 +1,5 @@
+# Foundry compilation artifacts and caches
+out/
+cache/
+broadcast/
+solidity-files-cache.json
