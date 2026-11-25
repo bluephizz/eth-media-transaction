@@ -2,7 +2,7 @@
 set -e
 
 # Export required environment paths
-export PATH="$HOME/.foundry/bin:$HOME/.nvm/versions/node/v25.2.0/bin:$PATH"
+export PATH="$HOME/.local/go/bin:$HOME/.foundry/bin:$HOME/.nvm/versions/node/v25.2.0/bin:$PATH"
 
 PLATFORM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(dirname "$PLATFORM_DIR")"
