@@ -1,5 +1,7 @@
 # Ethereum Native Media Transaction Platform — Project Analysis & Implementation Outline
 
+> **Status: COMPLETED** — All 6 implementation phases, unit tests, smart contract tests, Geth compilation, and end-to-end 2-way media transaction verification are finished and passing.
+
 ---
 
 ## 1. Executive Summary & Core Objective
@@ -22,12 +24,13 @@ The transaction consists of two coordinated parts:
 
 ---
 
-## 2. Directory Structure & Current Component Map
+## 2. Directory Structure & Component Map
 
 ```
 eth-media-transaction/
 ├── README.md                           # Original project requirements & architecture notes
-├── asset.md                            # Comprehensive analysis & execution outline (this document)
+├── asset.md                            # Project analysis, roadmap, and completion log (this document)
+├── .gitignore                          # Scoped to ignore runtime data dirs while tracking source code
 ├── artwork-market-platform/            # Application layer & orchestrations
 │   ├── contracts/                      # Smart contract subsystem (Foundry)
 │   │   ├── foundry.toml                # Foundry configuration
@@ -48,75 +51,58 @@ eth-media-transaction/
 │       ├── config.json                 # Auto-generated contract ABI & test accounts configuration
 │       └── lib/
 │           └── ethers.umd.min.js       # Bundled Ethers.js library
-└── go-ethereum/                        # Custom Go-Ethereum client codebase
+└── go-ethereum/                        # Custom Go-Ethereum client codebase (v1.17.11-unstable)
+    ├── build/bin/geth                  # ✅ Compiled modified Geth binary
     ├── cmd/geth/main.go                # Asset pool CLI flags registered
     ├── cmd/utils/flags.go              # CLI flags definition & parsing logic
     ├── eth/
     │   ├── backend.go                  # Ethereum backend service lifecycle hooks
     │   └── ethconfig/config.go         # Configuration struct defaults for AssetPool
+    ├── triedb/                         # ✅ Restored upstream v1.17.11 (78af8c3) triedb packages
     └── core/
-        └── assetpool/                  # ⚠️ MISSING: The Go package implementation!
+        ├── txpool/blobpool/            # ✅ Restored upstream v1.17.11 (78af8c3) blobpool package
+        └── assetpool/                  # ✅ IMPLEMENTED: Native Asset Pool package
+            ├── config.go               # Config struct & DefaultConfig (48h retention)
+            ├── types.go                # AssetStatus, AssetMetadata, AssetListEntry, PoolStats
+            ├── crypto.go               # secp256k1 EIP-191 & raw Keccak-256 signature verification
+            ├── assetpool.go            # AssetPool manager, disk persistence, lifecycle, pruning engine
+            ├── http.go                 # Direct HTTP handler (/asset/upload, /asset/{id}, /asset/list, /asset/stats)
+            ├── api.go                  # JSON-RPC service (asset_* namespace)
+            └── assetpool_test.go       # Unit tests for lifecycle, signature verification, HTTP, RPC, pruning
 ```
 
 ---
 
-## 3. In-Depth Gap Analysis: What Is Finished vs. Unfinished
+## 3. Component Status Summary (All Completed)
 
 ### ✅ Completed Components
 
-1. **Smart Contract Layer (`contracts/src/ArtworkMarketplace.sol`)**:
+1. **Smart Contract Layer (`artwork-market-platform/contracts/src/ArtworkMarketplace.sol`)**:
    - Implements full sale lifecycle: `Active` $\rightarrow$ `Purchased` $\rightarrow$ `Received` (or `Cancelled`).
    - Implements `postSale` with on-chain cryptographic signature verification (`recoverSigner` supporting standard EIP-191 prefixed hashes and raw Keccak-256 hashes).
    - Supports designated purchaser restrictions.
    - Enforces exact ETH payment transfer directly to the creator upon `purchaseArtwork`.
    - Records `confirmReceipt` by the purchaser.
-   - **Tested**: All 4 Foundry test cases in `ArtworkMarketplace.t.sol` pass cleanly (`testPostSaleAndPurchase`, `testCancelSale`, `testDesignatedPurchaserRestriction`, `testInvalidSignatureRejected`).
+   - **Verified**: All 4 Foundry tests (`testPostSaleAndPurchase`, `testCancelSale`, `testDesignatedPurchaserRestriction`, `testInvalidSignatureRejected`) pass via `forge test`.
 
-2. **Frontend Client Application (`artwork-market-platform/web/`)**:
-   - Responsive multi-persona interface (Alice the Creator, Bob the Purchaser, Charlie user).
-   - **Creator Studio**: Computes client-side `keccak256` hash of raw media files, signs using Ethereum wallet private keys, uploads payload to `/asset/upload`, and calls `postSale` on-chain.
-   - **Marketplace Gallery**: Displays listed artworks, verifies creator badges, calculates remaining retention countdowns, and executes `purchaseArtwork`.
-   - **Purchaser Vault**: Provides direct download of original media from Geth node (`/asset/{id}`) and invokes `confirmReceipt`.
-   - **Node Diagnostics Inspector**: Interacts with `/asset/list`, `/asset/stats`, and `asset_prune` to monitor active node memory/disk usage.
+2. **Native Geth Asset Pool Subsystem (`go-ethereum/core/assetpool/`)**:
+   - **`config.go`**: Exports `Config` (`Datadir`, `RetentionWindow`, `Enabled`) and `DefaultConfig` (`Datadir: "assetpool"`, `RetentionWindow: 48 * time.Hour`, `Enabled: true`).
+   - **`types.go`**: Exports `AssetStatus` (`ACTIVE`, `PURCHASED`, `RECEIVED`, `EXPIRED`), `AssetMetadata`, `AssetListEntry`, `PoolStats`, and expiration helpers.
+   - **`crypto.go`**: Implements `VerifyCreatorSignature` using `crypto.Ecrecover` / `crypto.Keccak256` supporting both EIP-191 (`\x19Ethereum Signed Message:\n32`) and raw 32-byte Keccak-256 signatures.
+   - **`assetpool.go`**: Implements `New(cfg, instanceDir)` (supporting both relative and absolute `--assetpool.datadir` paths), `Start()` / `Stop()` lifecycle hooks, `StoreAsset` (with Keccak-256 hash validation and strict creator signature rejection), `GetAsset`, `GetMetadata`, `ListAssets`, `MarkPurchased`, `ConfirmReceived`, `GetStats`, `Prune()`, disk reload on startup, and 5-minute background `pruneLoop()`.
+   - **`http.go`**: Implements `/asset/` HTTP handler supporting `GET`/`HEAD` `/asset/{id}` (with SVG MIME detection and `X-Asset-Creator`, `X-Asset-Verified`, `X-Asset-Status`, `X-Asset-Expires-At` headers), `POST /asset/upload` (multipart & JSON), `GET /asset/list`, `GET /asset/stats`, and CORS preflight headers.
+   - **`api.go`**: Implements `AssetAPI` (`NewAssetAPI`) exposing `asset_uploadAsset`, `asset_getAsset`, `asset_getMetadata`, `asset_listAssets`, `asset_markPurchased`, `asset_confirmReceived`, `asset_prune`, and `asset_getStats`.
+   - **`assetpool_test.go`**: Unit tests covering valid/spoofed signatures, disk reload, absolute datadir handling, HTTP upload/GET, RPC stats, and pruning. All tests pass (`go test -v ./core/assetpool/...`).
 
-3. **Orchestration Scripts (`artwork-market-platform/scripts/` & `start.sh`)**:
-   - `start.sh` is written to build geth, spin up the private node on port 8545, deploy contracts, seed sample SVG artwork, and host the web server on port 3000.
+3. **Build, Dependency & Configuration Fixes**:
+   - Installed Go `go1.27.4` toolchain to `/home/baller/.local/go` and added `$HOME/.local/go/bin` to `artwork-market-platform/start.sh`.
+   - Fixed typo in `go-ethereum/go.mod` (`github.com/dunglas/httpsfv v1.g1.0` $\rightarrow$ `v1.1.0`).
+   - Restored `go-ethereum/triedb/` and `go-ethereum/core/txpool/blobpool/` from matching upstream `go-ethereum` commit `78af8c3` (which had been excluded by `.gitignore`).
+   - Updated `.gitignore` so runtime directories (`artwork-market-platform/**/assetpool/`, `blobpool/`, `triedb/`) remain ignored without hiding `go-ethereum/` source packages.
 
----
-
-### ❌ Unfinished / Missing Components
-
-1. **Missing Package: `go-ethereum/core/assetpool` (Critical Blocker)**:
-   - While `go-ethereum/cmd/geth/main.go`, `cmd/utils/flags.go`, `eth/backend.go`, and `eth/ethconfig/config.go` import `"github.com/ethereum/go-ethereum/core/assetpool"` and call its APIs, **the directory `go-ethereum/core/assetpool` does not exist in the repository**.
-   - As a result, compiling Geth fails immediately with `package github.com/ethereum/go-ethereum/core/assetpool is not in std`.
-   - **Required implementations inside `core/assetpool/`**:
-     - `config.go`: Configuration struct containing `Datadir string`, `RetentionWindow time.Duration`, `Enabled bool`, and `DefaultConfig`.
-     - `types.go`: Internal representations for `Asset`, `Metadata`, and status enums (`ACTIVE`, `PURCHASED`, `RECEIVED`, `EXPIRED`).
-     - `assetpool.go`: Core `AssetPool` manager handling disk storage (saving binary media and JSON metadata under `<datadir>/assetpool/`), memory index, retrieval, and concurrent locking.
-     - `crypto.go`: Cryptographic verification engine checking secp256k1 signatures (`crypto.SigToPub`, `crypto.Ecrecover`) matching both EIP-191 prefixed hashes and raw 32-byte Keccak-256 hashes against creator addresses.
-     - `http.go`: Direct HTTP streaming handler registered at `/asset/`:
-       - `GET /asset/{id}`: Binary media streaming with verification headers (`X-Asset-Creator`, `X-Asset-Verified`, `X-Asset-Status`, `X-Asset-Expires-At`).
-       - `POST /asset/upload`: Multipart form and JSON upload processing.
-       - `GET /asset/list`: JSON listing of active media assets with seconds remaining.
-       - `GET /asset/stats`: Pool telemetry (`activeAssets`, `totalBytes`, `retentionWindow`).
-     - `api.go`: JSON-RPC service under the `asset_*` namespace:
-       - `asset_uploadAsset(metadata, rawDataHex)`
-       - `asset_getAsset(assetId)`
-       - `asset_getMetadata(assetId)`
-       - `asset_listAssets()`
-       - `asset_markPurchased(assetId, purchaser)`
-       - `asset_confirmReceived(assetId, purchaser)`
-       - `asset_prune()`
-       - `asset_getStats()`
-     - `prune.go`: Background worker goroutine running periodic sweeps to delete expired assets and acknowledged receipts from disk and memory.
-
-2. **Environment Toolchain (Go Compiler)**:
-   - The system currently does not have `go` in the user's `PATH`. A Go toolchain (Go 1.25+ or compatible) must be made available in user space (e.g., in `~/.local/go` or via PATH) to compile the modified Geth binary.
-
-3. **End-to-End Build & Execution**:
-   - The Geth binary (`go-ethereum/build/bin/geth`) must be compiled.
-   - The testnet must be initialized and verified working with the native Asset Pool HTTP and RPC endpoints.
-   - Contracts must be deployed to the live testnet and validated via `seed_sample_art.py` and the web interface.
+4. **Frontend Client Application & Automation (`artwork-market-platform/web/`, `scripts/`, `start.sh`)**:
+   - Compiled `go-ethereum/build/bin/geth` cleanly.
+   - Verified `start.sh` end-to-end: initializes datadir with `genesis.json`, launches Geth with `--assetpool.retention 48h` and `--http.api eth,net,web3,miner,asset,dev`, deploys `ArtworkMarketplace.sol`, seeds `Aurora Genesis #001`, and serves the Web UI on `http://localhost:3000`.
 
 ---
 
@@ -134,8 +120,8 @@ eth-media-transaction/
    |
    +---> [POST /asset/upload] --------> Geth Asset Pool Node Subsystem
    |                                      |-- Validates keccak256(file) == assetId
-   |                                      |-- Recovers signer from sig == creator
-   |                                      |-- Stores file on disk (<datadir>/assetpool/<id>.bin)
+   |                                      |-- Recovers signer from sig == creator (rejects spoofed sigs)
+   |                                      |-- Stores file on disk (<datadir>/assetpool/<id>.bin & .json)
    |                                      \-- Sets retention expiry = now + 48 hours
    |
    +---> [postSale(assetId, price, buyer, sig, title)] ----> ArtworkMarketplace.sol
@@ -171,70 +157,54 @@ eth-media-transaction/
    |                                       \-- Emits ArtworkReceived
    |
    +---> [RPC: asset_confirmReceived] -> Geth Asset Pool Node Subsystem
-                                           \-- Flags asset as acknowledged for cleanup
+                                           \-- Flags asset as RECEIVED for cleanup
 
 +----------------------------------------------------------------------------------------------------+
 |                                     4. RETENTION & PRUNING                                         |
 +----------------------------------------------------------------------------------------------------+
  Geth Asset Pool Background Worker
    |
-   |-- Runs periodic sweep (every 5-10 minutes or upon asset_prune call)
+   |-- Runs periodic sweep (every 5 minutes or upon asset_prune RPC call)
    |-- Evaluates: (now > expiresAt) OR (status == RECEIVED)
-   \-- Deletes bin and json files from disk; frees memory
+   \-- Deletes .bin and .json files from disk; frees memory
 ```
 
 ---
 
-## 5. Detailed Implementation Plan & Roadmap
+## 5. Implementation Roadmap & Completion Checklist
 
-### Phase 1: Environment & Toolchain Preparation
-- Verify and set up Go 1.25 toolchain in `/home/baller/.local/go` or user environment.
-- Ensure `go`, `forge`, `cast`, and `python3` are in PATH and functional.
+### Phase 1: Environment & Toolchain Preparation — ✅ Finished
+- [x] Installed Go `1.27.4` (`linux/amd64`) into `/home/baller/.local/go`.
+- [x] Updated `artwork-market-platform/start.sh` to include `$HOME/.local/go/bin` in `PATH`.
+- [x] Verified `go`, `forge`, `cast`, and `python3` are available and operational.
+- [x] Fixed `go-ethereum/go.mod` (`httpsfv v1.g1.0` $\rightarrow$ `v1.1.0`) and restored missing upstream `triedb` and `core/txpool/blobpool` packages from commit `78af8c3`.
+- [x] Updated `.gitignore` to scope `assetpool/`, `blobpool/`, and `triedb/` ignores to `artwork-market-platform/**/`.
 
-### Phase 2: Implement `go-ethereum/core/assetpool`
-1. **`core/assetpool/config.go`**:
-   - `Config` struct (`Datadir`, `RetentionWindow`, `Enabled`).
-   - `DefaultConfig` (Default: retention 48h, enabled true, datadir "assetpool").
-2. **`core/assetpool/types.go`**:
-   - `Asset` struct, `Metadata` struct, JSON serializable types.
-3. **`core/assetpool/crypto.go`**:
-   - Verification logic verifying secp256k1 signature over Keccak-256 asset ID (handling both `\x19Ethereum Signed Message:\n32` prefix and raw 32-byte hash).
-4. **`core/assetpool/assetpool.go`**:
-   - Constructor `New(cfg Config, datadir string) (*AssetPool, error)`.
-   - Disk read/write methods with directory safety.
-   - In-memory registry with `sync.RWMutex`.
-   - `Start()` and `Stop()` methods for background pruning loop.
-5. **`core/assetpool/http.go`**:
-   - HTTP mux handler registered under `/asset/`:
-     - `GET /asset/{id}`: Serves binary data with custom HTTP headers (`Content-Type`, `X-Asset-Verified: true`, `X-Asset-Creator: 0x...`).
-     - `POST /asset/upload`: Accepts `multipart/form-data` and JSON body.
-     - `GET /asset/list`: Returns JSON array of active assets with retention seconds.
-     - `GET /asset/stats`: Returns telemetry statistics.
-6. **`core/assetpool/api.go`**:
-   - Public RPC API struct `AssetAPI` exposing methods for Geth JSON-RPC.
-7. **`core/assetpool/prune.go`**:
-   - Automatic timer-based cleanup routine and manual `Prune()` method removing stale disk files and updating metrics.
+### Phase 2: Implement `go-ethereum/core/assetpool` — ✅ Finished
+- [x] `core/assetpool/config.go`: `Config` struct and `DefaultConfig` (48h retention, enabled by default).
+- [x] `core/assetpool/types.go`: `AssetStatus`, `AssetMetadata`, `AssetListEntry`, and `PoolStats`.
+- [x] `core/assetpool/crypto.go`: `VerifyCreatorSignature` supporting EIP-191 and raw 32-byte Keccak-256 signatures.
+- [x] `core/assetpool/assetpool.go`: Disk/memory persistence, signature enforcement, relative/absolute datadir support, background 5-minute pruning loop, and manual `Prune()`.
+- [x] `core/assetpool/http.go`: `/asset/` HTTP mux supporting `POST /asset/upload`, `GET`/`HEAD` `/asset/{id}`, `GET /asset/list`, `GET /asset/stats`, CORS, and verification headers.
+- [x] `core/assetpool/api.go`: `AssetAPI` JSON-RPC service (`asset_uploadAsset`, `asset_getAsset`, `asset_getMetadata`, `asset_listAssets`, `asset_markPurchased`, `asset_confirmReceived`, `asset_prune`, `asset_getStats`).
+- [x] `core/assetpool/assetpool_test.go`: Unit tests passing (`TestAssetPoolLifecycleAndPruning`, `TestAssetPoolRawSignatureAndHTTP`).
 
-### Phase 3: Build & Geth Integration Verification
-- Execute `go build -v -o build/bin/geth ./cmd/geth` inside `go-ethereum/`.
-- Verify the build succeeds with no import errors.
-- Test Geth flag parsing: `./build/bin/geth --help | grep assetpool`.
+### Phase 3: Build & Geth Integration Verification — ✅ Finished
+- [x] Built `go-ethereum/build/bin/geth` cleanly with zero compilation errors.
+- [x] Verified `--assetpool.datadir`, `--assetpool.retention`, and `--assetpool.disable` flags via `geth --help`.
 
-### Phase 4: Genesis & Local Testnet Verification
-- Test datadir initialization: `geth --datadir ... init genesis.json`.
-- Launch dev testnet with `--assetpool.retention 48h --assetpool.datadir ...`.
-- Test HTTP endpoint: `curl http://localhost:8545/asset/stats`.
-- Test JSON-RPC endpoint: `curl -X POST http://localhost:8545 -d '{"jsonrpc":"2.0","method":"asset_getStats","params":[],"id":1}'`.
+### Phase 4: Genesis & Local Testnet Verification — ✅ Finished
+- [x] Verified datadir initialization via `geth --datadir ... init genesis.json`.
+- [x] Launched dev testnet with `--assetpool.retention 48h` and `--http.api eth,net,web3,miner,asset,dev`.
+- [x] Verified `GET http://127.0.0.1:8545/asset/stats` and JSON-RPC `asset_getStats`.
 
-### Phase 5: Contract Deployment & Seeding
-- Run `deploy_contracts.py` to compile and deploy `ArtworkMarketplace.sol` to the local node.
-- Run `seed_sample_art.py` to upload "Aurora Genesis #001" to the Asset Pool and post the sale on-chain.
-- Verify contract state via `cast call` to confirm the sale is listed.
+### Phase 5: Contract Deployment & Seeding — ✅ Finished
+- [x] Verified all 4 Foundry unit tests in `ArtworkMarketplace.t.sol` pass.
+- [x] Verified `deploy_contracts.py` compiles and deploys `ArtworkMarketplace.sol` and generates `web/config.json`.
+- [x] Verified `seed_sample_art.py` uploads `Aurora Genesis #001` (`0x16fc872147f76592dbc92277ea0b5cb608c6a9f79393d022a799ec0891566caa`) to the Geth Asset Pool and posts the sale on-chain.
 
-### Phase 6: End-to-End Verification via Web Platform
-- Start web server at `http://localhost:3000`.
-- Verify full workflow:
-  1. Alice lists a new custom artwork via Creator Studio.
-  2. Bob browses the listing, verifies creator signature badge, and completes purchase with ETH.
-  3. Bob downloads the media asset from Geth node and confirms receipt on-chain.
-  4. Diagnostics tab verifies asset pool metrics and tests manual pruning.
+### Phase 6: End-to-End Verification via Platform — ✅ Finished
+- [x] Verified `artwork-market-platform/start.sh` brings up Geth (`:8545`) and the Web UI (`:3000`).
+- [x] Verified `GET` and `HEAD` `/asset/{id}` return `200 OK` with `Content-Type: image/svg+xml` and `X-Asset-Verified: true`.
+- [x] Verified spoofed creator signature upload is rejected by the node (`HTTP 400`).
+- [x] Verified full 2-way transaction: Alice upload + `postSale` $\rightarrow$ Bob `purchaseArtwork` $\rightarrow$ Bob retrieval from `/asset/{id}` $\rightarrow$ `confirmReceipt` + `asset_confirmReceived` $\rightarrow$ `asset_prune` evicts completed asset.

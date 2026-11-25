@@ -1,6 +1,6 @@
 module github.com/ethereum/go-ethereum
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.0
@@ -23,7 +23,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
 	github.com/donovanhide/eventsource v0.0.0-20210830082556-c59027999da0
 	github.com/dop251/goja v0.0.0-20230605162241-28ee0ee714f3
-	github.com/dunglas/httpsfv v1.g1.0
+	github.com/dunglas/httpsfv v1.1.0
 	github.com/ethereum/c-kzg-4844/v2 v2.1.8
 	github.com/ethereum/go-bigmodexpfix v0.0.0-20250911101455-f9e208c548ab
 	github.com/ethereum/hid v1.0.1-0.20260421154323-c2ab8d9bf68a
